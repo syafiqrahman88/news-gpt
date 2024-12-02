@@ -48,7 +48,7 @@ with col1:
                 news_data = fetch_news(keyword)
             
             if news_data:
-                if news_data.get('articles'):
+                if 'articles' in news_data and news_data['articles']:
                     # Display original articles
                     st.subheader("Original Articles")
                     for article in news_data['articles']:
