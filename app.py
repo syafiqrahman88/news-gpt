@@ -39,19 +39,6 @@ st.title("News Digest Tool")
 # Input for keyword filtering
 keyword = st.text_input("Enter a keyword to filter articles:")
 
-# Major languages from SEA and India
-target_language = st.selectbox("Select Language:", [
-    "zh",  # Chinese
-    "ja",  # Japanese
-    "ko",  # Korean
-    "id",  # Indonesian
-    "th",  # Thai
-    "vi",  # Vietnamese
-    "ms",  # Malay
-    "tl",  # Filipino (Tagalog)
-    "hi"   # Hindi
-])  
-
 if st.button("Get News Digest"):
     if keyword:
         with st.spinner("Fetching news..."):
@@ -59,33 +46,48 @@ if st.button("Get News Digest"):
         
         if news_data:
             if news_data.get('articles'):
-                summaries = []
+                # Display original articles
+                st.subheader("Original Articles")
                 for article in news_data['articles']:
-                    if article.get('content'):  # Ensure content is available
-                        # Pre-translated result
-                        pre_translated = article['content']
-                        
-                        with st.spinner("Generating summaries and translations..."):
-                            # Generate AI summary and translated result
-                            summary = generate_summary_and_translate(article['content'], target_language)
-                            
-                            # Store results
-                            summaries.append({
-                                'title': article['title'],
-                                'pre_translated': pre_translated,
-                                'translated': summary
-                            })
+                    st.markdown(f"**{article['title']}**")
+                    st.write(article['content'])
                 
-                if summaries:
-                    st.subheader("Summaries")
-                    for summary in summaries:
-                        st.markdown(f"**{summary['title']}**")
-                        st.write("**Pre-Translated Result:**")
-                        st.write(summary['pre_translated'])
-                        st.write("**Translated Result:**")
-                        st.write(summary['translated'])
-                else:
-                    st.write("No summaries generated.")
+                # Language buttons
+                st.subheader("Translate and Summarize")
+                languages = {
+                    "zh": "Chinese",
+                    "ja": "Japanese",
+                    "ko": "Korean",
+                    "id": "Indonesian",
+                    "th": "Thai",
+                    "vi": "Vietnamese",
+                    "ms": "Malay",
+                    "tl": "Filipino (Tagalog)",
+                    "hi": "Hindi"
+                }
+                
+                # Create columns for each language
+                cols = st.columns(len(languages))
+                
+                for i, (lang_code, lang_name) in enumerate(languages.items()):
+                    with cols[i]:
+                        if st.button(f"Translate to {lang_name}"):
+                            with st.spinner(f"Translating to {lang_name}..."):
+                                summaries = []
+                                for article in news_data['articles']:
+                                    if article.get('content'):  # Ensure content is available
+                                        # Generate AI summary and translated result
+                                        summary = generate_summary_and_translate(article['content'], lang_code)
+                                        summaries.append({
+                                            'title': article['title'],
+                                            'translated': summary
+                                        })
+                                
+                                # Display translated results
+                                st.subheader(f"Translated Articles in {lang_name}")
+                                for summary in summaries:
+                                    st.markdown(f"**{summary['title']}**")
+                                    st.write(summary['translated'])
             else:
                 st.write("No articles found for the given keyword.")
         else:
