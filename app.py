@@ -4,20 +4,24 @@ import streamlit as st
 import openai
 
 # Set your API keys from Streamlit secrets
-NEWS_API_KEY = st.secrets["news_api_key"]  # Accessing the key from Streamlit secrets
-OPENAI_API_KEY = st.secrets["openai_api_key"]  # Accessing the key from Streamlit secrets
+NEWS_API_KEY = st.secrets["news_api_key"]
+OPENAI_API_KEY = st.secrets["openai_api_key"]
 openai.api_key = OPENAI_API_KEY
 
 # Function to fetch news
-def fetch_news(query):
-    url = f'https://newsapi.org/v2/everything?q={query}&apiKey={NEWS_API_KEY}'
-    response = requests.get(url)
+def fetch_news():
+    # Fetch top headlines related to science and technology
+    url = f'https://newsapi.org/v2/top-headlines?q=science,technology&apiKey={NEWS_API_KEY}'
     
-    # Check if the request was successful
-    if response.status_code == 200:
+    try:
+        response = requests.get(url, timeout=10)  # Set a timeout of 10 seconds
+        response.raise_for_status()  # Raise an error for bad responses
         return response.json()
-    else:
-        st.error(f"Error fetching news: {response.status_code} - {response.text}")
+    except requests.exceptions.Timeout:
+        st.error("The request timed out. Please try again.")
+        return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching news: {e}")
         return None
 
 # Function to generate summary and translate using ChatGPT
@@ -32,31 +36,40 @@ def generate_summary_and_translate(text, target_language):
 # Streamlit application
 st.title("News Digest Tool")
 
-query = st.text_input("Enter news topic:")
-target_language = st.selectbox("Select Language:", ["es", "fr", "de"])  # Add more languages as needed
+# Major languages from SEA and India
+target_language = st.selectbox("Select Language:", [
+    "zh",  # Chinese
+    "ja",  # Japanese
+    "ko",  # Korean
+    "id",  # Indonesian
+    "th",  # Thai
+    "vi",  # Vietnamese
+    "ms",  # Malay
+    "tl",  # Filipino (Tagalog)
+    "hi"   # Hindi
+])  
 
 if st.button("Get News Digest"):
-    if query:
-        news_data = fetch_news(query)
-        
-        if news_data and news_data.get('articles'):
-            summaries = []
-            for article in news_data['articles']:
-                if article.get('content'):  # Ensure content is available
+    with st.spinner("Fetching news..."):
+        news_data = fetch_news()
+    
+    if news_data and news_data.get('articles'):
+        summaries = []
+        for article in news_data['articles']:
+            if article.get('content'):  # Ensure content is available
+                with st.spinner("Generating summaries..."):
                     summary = generate_summary_and_translate(article['content'], target_language)
                     summaries.append({
                         'title': article['title'],
                         'summary': summary
                     })
-            
-            if summaries:
-                st.subheader("Summaries")
-                for summary in summaries:
-                    st.markdown(f"**{summary['title']}**")
-                    st.write(summary['summary'])
-            else:
-                st.write("No summaries generated.")
+        
+        if summaries:
+            st.subheader("Summaries")
+            for summary in summaries:
+                st.markdown(f"**{summary['title']}**")
+                st.write(summary['summary'])
         else:
-            st.write("No articles found.")
+            st.write("No summaries generated.")
     else:
-        st.warning("Please enter a news topic.")
+        st.write("No articles found.")
