@@ -48,7 +48,7 @@ with col1:
                 news_data = fetch_news(keyword)
             
             if news_data:
-                if 'articles' in news_data and news_data['articles']:
+                if news_data.get('articles'):
                     # Display original articles
                     st.subheader("Original Articles")
                     for article in news_data['articles']:
@@ -78,20 +78,24 @@ with col2:
     
     # Create a button for each language
     for lang_code, lang_name in languages.items():
-        if st.button(f"Translate to {lang_name}"):
-            with st.spinner(f"Translating to {lang_name}..."):
-                summaries = []
-                for article in news_data['articles']:
-                    if article.get('content'):  # Ensure content is available
-                        # Generate AI summary and translated result
-                        summary = generate_summary_and_translate(article['content'], lang_code)
-                        summaries.append({
-                            'title': article['title'],
-                            'translated': summary
-                        })
+        if st.button(lang_name):  # Use only the language name
+            if 'articles' in news_data and news_data['articles']:
+                with st.spinner(f"Translating to {lang_name}..."):
+                    summaries = []
+                    for article in news_data['articles']:
+                        if article.get('content'):  # Ensure content is available
+                            # Generate AI summary and translated result
+                            summary = generate_summary_and_translate(article['content'], lang_code)
+                            summaries.append({
+                                'title': article['title'],
+                                'translated': summary
+                            })
                 
-                # Display translated results
-                st.subheader(f"Translated Articles in {lang_name}")
-                for summary in summaries:
-                    st.markdown(f"**{summary['title']}**")
-                    st.write(summary['translated'])
+                    # Display translated results
+                    st.subheader(f"Translated Articles in {lang_name}")
+                    for summary in summaries:
+                        st.markdown(f"**{summary['title']}**")
+                        st.write(summary['translated'])
+                        st.write("---")  # Horizontal line separator
+            else:
+                st.warning("No articles found for translation.")
