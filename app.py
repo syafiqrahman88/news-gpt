@@ -39,17 +39,18 @@ def translate_and_summarize(content, title, target_language):
     
     # Enhanced prompt design to ensure bullet points are in the target language
     prompt = (
-        f"Summarize the following article in four concise bullet points in {target_language} without formatting them as bullet points:\n\n"
+        f"Please summarize the following article in one to four concise bullet points in {target_language}:\n\n"
         f"{content}\n\n"
+        f"Make sure to always give bullet points."
         f"Translate the title and body of the article into {target_language}.\n\n"
         f"Title: {title}\n"
         f"Body: {content}\n\n"
         f"Format the output as follows:\n"
         f"Summary in {target_language}:\n"
-        f"- Point one\n"
-        f"- Point two\n"
-        f"- Point three\n"
-        f"- Point four\n\n"
+        f"- Bullet one\n"
+        f"- Bullet two\n"
+        f"- Bullet three\n"
+        f"- Bullet four\n\n"
         f"Translated Title: <translated title>\n"
         f"Translated Content: <translated content>"
     )
