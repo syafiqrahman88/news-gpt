@@ -4,15 +4,12 @@ import requests
 import os
 import re  # Import regex module
 
-# Load environment variables
-from dotenv import load_dotenv
+# Load environment variables from .env file (only for local development)
 load_dotenv()
 
-# Set OpenAI API key
+# Access your API keys
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# Set NewsAPI key
-news_api_key = os.getenv("NEWS_API_KEY")  # Make sure to set this in your environment
+news_api_key = os.getenv("NEWS_API_KEY")
 
 # Language options for translation
 languages = {
