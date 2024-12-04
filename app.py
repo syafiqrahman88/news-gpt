@@ -94,9 +94,7 @@ if st.sidebar.button("Fetch Articles"):
             "query": {
                 "$query": {
                     "$and": [
-                        {"keyword": query},  # Input from the user
-                        {"keyword": "semiconductor"},  # Industry-specific keyword
-                        {"keyword": "materials engineering"}  # Additional context
+                        {"keyword": query},  # Broad keyword like "technology"
                     ]
                 }
             },
@@ -202,7 +200,7 @@ with st.container():
                         translated_body = strip_markdown(translated_body)
 
                         # Display the formatted output
-                        st.subheader("Summary:")
+                        st.subheader("AI-Generated Summary:")
                         for bullet in summary:
                             st.write(f"- {bullet.strip()}")
                         st.subheader("Translated Title:")
