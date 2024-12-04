@@ -4,12 +4,9 @@ import requests
 import os
 import re  # Import regex module
 
-# Load environment variables from .env file (only for local development)
-load_dotenv()
-
-# Access your API keys
-openai.api_key = os.getenv("OPENAI_API_KEY")
-news_api_key = os.getenv("NEWS_API_KEY")
+# Access your API keys directly from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+news_api_key = st.secrets["NEWS_API_KEY"]
 
 # Language options for translation
 languages = {
