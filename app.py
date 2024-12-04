@@ -146,9 +146,9 @@ with st.container():
                 body = article.get('body', 'No Description')  # Use 'body' for description
                 url = article.get('url', '#')
 
-                # Display article information using st.text
+                # Display article information using st.caption
                 st.subheader(title)
-                st.text(body)  # Use st.text to display without Markdown parsing
+                st.caption(body)  # Use st.caption to display without Markdown parsing
                 st.write(f"[Read more]({url})")
 
                 # Language translation dropdown with a unique key
