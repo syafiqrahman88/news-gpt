@@ -3,7 +3,7 @@ import openai
 import requests
 import os
 import re  # Import regex module
-from fpdf import FPDF
+from fpdf2 import FPDF
 
 # Check if running locally or on Streamlit Sharing
 if "STREAMLIT_SERVER" in os.environ:
@@ -100,8 +100,11 @@ def analyze_sentiment(title, body):
 def create_pdf(original_title, translated_title, summary, sentiment, url, target_language):
     """Create a PDF file with the given content."""
     pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
+
+    # Adding support for UTF-8 (non-Latin scripts) with fpdf2
+    pdf.add_font('DejaVu', '', '/path/to/DejaVuSans.ttf', uni=True)  # Use a suitable font
+    pdf.set_font('DejaVu', size=12)
 
     # Set title (original title)
     pdf.set_font("Arial", 'B', 16)
@@ -127,7 +130,7 @@ def create_pdf(original_title, translated_title, summary, sentiment, url, target
     pdf.cell(0, 10, sentiment, ln=True)  # Sentiment value on the same line
 
     # Save the PDF to a BytesIO object
-    pdf_output = pdf.output(dest='S').encode('utf-8')  # Change to utf-8 encoding
+    pdf_output = pdf.output(dest='S')  # No need to encode, fpdf2 handles it
     return pdf_output
 
 # Set the title of the app
