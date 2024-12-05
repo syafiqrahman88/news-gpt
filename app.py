@@ -97,7 +97,7 @@ def analyze_sentiment(title, body):
         st.error(f"Error during sentiment analysis: {e}")
         return None
 
-def create_pdf(original_title, translated_title, summary, sentiment, url):
+def create_pdf(original_title, translated_title, summary, sentiment, url, target_language):
     """Create a PDF file with the given content."""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -111,8 +111,11 @@ def create_pdf(original_title, translated_title, summary, sentiment, url):
     pdf.set_font("Arial", 'B', 12)  # Smaller size for translated title
     pdf.cell(0, 10, translated_title, ln=True, align='C')
 
-    # Add AI-generated summary
+    # Add target language
     pdf.set_font("Arial", size=12)  # Body text size
+    pdf.multi_cell(0, 10, f"Target Language: {target_language}")  # Add target language
+
+    # Add AI-generated summary
     pdf.multi_cell(0, 10, "AI-Generated Summary:")  # Use multi_cell for wrapping
     for bullet in summary:
         pdf.multi_cell(0, 10, f"- {bullet.strip()}")  # Use multi_cell for wrapping
@@ -124,7 +127,7 @@ def create_pdf(original_title, translated_title, summary, sentiment, url):
     pdf.cell(0, 10, sentiment, ln=True)  # Sentiment value on the same line
 
     # Save the PDF to a BytesIO object
-    pdf_output = pdf.output(dest='S').encode('latin1')
+    pdf_output = pdf.output(dest='S').encode('utf-8')  # Change to utf-8 encoding
     return pdf_output
 
 # Set the title of the app
@@ -290,7 +293,7 @@ with st.container():
 
                             # Add a button to download as PDF
                             if st.button("Download as PDF"):
-                                pdf_output = create_pdf(title, translated_title, summary, sentiment, url)
+                                pdf_output = create_pdf(title, translated_title, summary, sentiment, url, selected_language)
                                 st.download_button("Download PDF", pdf_output, f"{title}.pdf", "application/pdf")
                 else:
                     st.warning("Article format is not as expected.")
