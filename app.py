@@ -105,6 +105,8 @@ if 'articles' not in st.session_state:
     st.session_state.articles = []
 if 'translated_content' not in st.session_state:
     st.session_state.translated_content = {}
+if 'articles_fetched' not in st.session_state:
+    st.session_state.articles_fetched = False  # Flag to track if articles have been fetched
 
 # Sidebar for user input
 st.sidebar.header("User Input")
@@ -158,6 +160,7 @@ if st.sidebar.button("Fetch Articles"):
                         article['body'] = strip_markdown(article.get('body', ''))
 
                     st.session_state.articles = [article for article in articles if article.get('lang') == 'eng']
+                    st.session_state.articles_fetched = True  # Set the flag to True after fetching
                 else:
                     st.error("No articles found in the response or response format is incorrect.")
                     st.session_state.articles = []  # Set articles to an empty list to avoid further errors
@@ -168,92 +171,95 @@ if st.sidebar.button("Fetch Articles"):
 
 # Create a container for Original Articles
 with st.container():
-    st.header("Original Articles")
-    if st.session_state.articles:
-        for index, article in enumerate(st.session_state.articles):  # Use session state
-            # Ensure article is a dictionary before accessing its keys
-            if isinstance(article, dict):
-                title = article.get('title', 'No Title')
-                body = article.get('body', 'No Description')  # Use 'body' for description
-                url = article.get('url', '#')
+    if st.session_state.articles_fetched:
+        st.header("Original Articles")
+        if st.session_state.articles:
+            for index, article in enumerate(st.session_state.articles):  # Use session state
+                # Ensure article is a dictionary before accessing its keys
+                if isinstance(article, dict):
+                    title = article.get('title', 'No Title')
+                    body = article.get('body', 'No Description')  # Use 'body' for description
+                    url = article.get('url', '#')
 
-                # Display article information using st.caption
-                st.subheader(title)
-                st.caption(body)  # Use st.caption to display without Markdown parsing
-                st.write(f"[Read more]({url})")
+                    # Display article information using st.caption
+                    st.subheader(title)
+                    st.caption(body)  # Use st.caption to display without Markdown parsing
+                    st.write(f"[Read more]({url})")
 
-                # Language translation dropdown with a unique key
-                selected_language = st.selectbox(
-                    "Translate and Summarize to:",
-                    list(languages.values()),
-                    key=f"language_selectbox_{index}"  # Unique key using index
-                )
+                    # Language translation dropdown with a unique key
+                    selected_language = st.selectbox(
+                        "Translate and Summarize to:",
+                        list(languages.values()),
+                        key=f"language_selectbox_{index}"  # Unique key using index
+                    )
 
-                # Check if translation has already occurred
-                if f"translated_{index}" not in st.session_state:
-                    st.session_state[f"translated_{index}"] = None
+                    # Check if translation has already occurred
+                    if f"translated_{index}" not in st.session_state:
+                        st.session_state[f"translated_{index}"] = None
 
-                # Button to translate and summarize the content when a language is selected
-                if st.button("Translate and Summarize", key=f"translate_button_{index}"):
-                    if selected_language:
-                        # Call the translation and summarization function
-                        translated_content = translate_and_summarize(body, title, selected_language)  # Use body for translation
-                        # Store the translated content in session state
-                        st.session_state[f"translated_{index}"] = translated_content  # Store in session state
-                
-                # Expander for translated content
-                with st.expander("Show Translated Content", expanded=False):
-                    if st.session_state[f"translated_{index}"]:
-                        # Check if the response is a list and join it into a single string if necessary
-                        translated_response = st.session_state[f"translated_{index}"]
-                        
-                        if isinstance(translated_response, list):
-                            # Join the list into a single string
-                            translated_response = "\n".join(translated_response)
-                        
-                        # Now you can safely split the string
-                        lines = translated_response.split("\n")
-                        summary = []
-                        title = article.get('title', 'No Title')  # Use original title
-                        body = article.get('body', 'No Description')  # Use original body
-                        translated_title = ""
-                        translated_body = ""
+                    # Button to translate and summarize the content when a language is selected
+                    if st.button("Translate and Summarize", key=f"translate_button_{index}"):
+                        if selected_language:
+                            # Call the translation and summarization function
+                            translated_content = translate_and_summarize(body, title, selected_language)  # Use body for translation
+                            # Store the translated content in session state
+                            st.session_state[f"translated_{index}"] = translated_content  # Store in session state
+                    
+                    # Expander for translated content
+                    with st.expander("Show Translated Content", expanded=False):
+                        if st.session_state[f"translated_{index}"]:
+                            # Check if the response is a list and join it into a single string if necessary
+                            translated_response = st.session_state[f"translated_{index}"]
+                            
+                            if isinstance(translated_response, list):
+                                # Join the list into a single string
+                                translated_response = "\n".join(translated_response)
+                            
+                            # Now you can safely split the string
+                            lines = translated_response.split("\n")
+                            summary = []
+                            title = article.get('title', 'No Title')  # Use original title
+                            body = article.get('body', 'No Description')  # Use original body
+                            translated_title = ""
+                            translated_body = ""
 
-                        for line in lines:
-                            if line.startswith("Summary in"):
-                                # Extract summary lines that start with "-"
-                                summary = [line.strip() for line in lines[lines.index(line) + 1:] if line.startswith("-")]
-                            elif line.startswith("Translated Title:"):
-                                translated_title = line.replace("Translated Title: ", "").strip()
-                            elif line.startswith("Translated Content:"):
-                                translated_body = line.replace("Translated Content: ", "").strip()
+                            for line in lines:
+                                if line.startswith("Summary in"):
+                                    # Extract summary lines that start with "-"
+                                    summary = [line.strip() for line in lines[lines.index(line) + 1:] if line.startswith("-")]
+                                elif line.startswith("Translated Title:"):
+                                    translated_title = line.replace("Translated Title: ", "").strip()
+                                elif line.startswith("Translated Content:"):
+                                    translated_body = line.replace("Translated Content: ", "").strip()
 
-                        # Remove italics from the translated title and body
-                        translated_title = strip_markdown(translated_title)
-                        translated_body = strip_markdown(translated_body)
+                            # Remove italics from the translated title and body
+                            translated_title = strip_markdown(translated_title)
+                            translated_body = strip_markdown(translated_body)
 
-                        # Display the formatted output
-                        st.subheader("AI-Generated Summary:")
-                        for bullet in summary:
-                            st.write(f"- {bullet.strip()}")
-                        st.subheader("Translated Title:")
-                        st.write(translated_title)
-                        st.subheader("Translated Content:")
-                        st.write(translated_body)
+                            # Display the formatted output
+                            st.subheader("AI-Generated Summary:")
+                            for bullet in summary:
+                                st.write(f"- {bullet.strip()}")
+                            st.subheader("Translated Title:")
+                            st.write(translated_title)
+                            st.subheader("Translated Content:")
+                            st.write(translated_body)
 
-                        # Perform sentiment analysis on the original title and body
-                        sentiment = analyze_sentiment(title, body)
+                            # Perform sentiment analysis on the original title and body
+                            sentiment = analyze_sentiment(title, body)
 
-                        # Determine the color based on sentiment
-                        sentiment_color = {
-                            "Positive": "green",
-                            "Negative": "red",
-                            "Neutral": "gray"
-                        }.get(sentiment, "gray")  # Default to gray if sentiment is not recognized
+                            # Determine the color based on sentiment
+                            sentiment_color = {
+                                "Positive": "green",
+                                "Negative": "red",
+                                "Neutral": "gray"
+                            }.get(sentiment, "gray")  # Default to gray if sentiment is not recognized
 
-                        # Display sentiment result with color formatting using HTML
-                        st.markdown(f"<h3>AI-Generated Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
-            else:
-                st.warning("Article format is not as expected.")
+                            # Display sentiment result with color formatting using HTML
+                            st.markdown(f"<h3>AI-Generated Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
+                else:
+                    st.warning("Article format is not as expected.")
+        else:
+            st.warning("No articles found for your query.")
     else:
-        st.warning("No articles found for your query.")
+        st.info("Please input a keyword or phrase into the Search Query and hit 'Fetch Articles'.")
