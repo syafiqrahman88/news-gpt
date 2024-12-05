@@ -3,11 +3,6 @@ import openai
 import requests
 import os
 import re  # Import regex module
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from io import BytesIO  # Import BytesIO for in-memory file handling
 
 # Check if running locally or on Streamlit Sharing
 if "STREAMLIT_SERVER" in os.environ:
@@ -37,35 +32,6 @@ languages = {
     'th': 'Thai',
     'vi': 'Vietnamese'
 }
-
-# Function to register fonts based on language
-def register_font(language):
-    if language == 'zh':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansSC-VariableFont_wght.ttf'))  # Use Noto Sans SC
-    elif language == 'ja':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansJP-VariableFont_wght.ttf'))  # Use Noto Sans JP
-    elif language == 'ko':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansKR-VariableFont_wght.ttf'))  # Use Noto Sans KR
-    elif language == 'vi':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSans-VariableFont_wdth,wght.ttf'))  # Use Noto Sans for Vietnamese
-    elif language == 'th':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansThai-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Thai
-    elif language in ['id', 'ms']:
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSans-VariableFont_wdth,wght.ttf'))  # Use Noto Sans for Indonesian and Malay
-    elif language == 'my':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansMyanmar-Regular.ttf'))  # Use Noto Sans Myanmar
-    elif language == 'km':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansKhmer-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Khmer
-    elif language == 'lo':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansLao-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Lao
-    elif language == 'hi':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansDevanagari-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Devanagari
-    elif language == 'bn':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansBengali-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Bengali
-    elif language == 'ta':
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansTamil-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Tamil
-    else:
-        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSans-VariableFont_wdth,wght.ttf'))  # Fallback to Noto Sans
 
 def strip_markdown(text):
     """Remove Markdown formatting from the given text."""
@@ -126,42 +92,6 @@ def analyze_sentiment(title, body):
     except Exception as e:
         st.error(f"Error during sentiment analysis: {e}")
         return None
-
-def create_pdf(original_title, translated_title, summary, sentiment, url, language):
-    """Create a PDF file with the given content."""
-    buffer = BytesIO()  # Create a BytesIO buffer
-    c = canvas.Canvas(buffer, pagesize=letter)
-
-    # Register the appropriate font for the language
-    register_font(language)
-    c.setFont("NotoSans", 16)  # Use the registered font
-
-    # Set up the title (hyperlinked)
-    c.drawString(72, 720, original_title)  # Original Title
-    c.linkURL(url, (72, 720, 500, 740), relative=1)  # Hyperlink
-
-    # Set translated title
-    c.setFont("NotoSans", 12)
-    c.drawString(72, 680, translated_title)  # Translated Title
-
-    # Add AI-generated summary
-    c.setFont("NotoSans", 12)
-    c.drawString(72, 640, "AI-Generated Summary:")
-    y_position = 620
-    for bullet in summary:
-        c.drawString(72, y_position, f"- {bullet.strip()}")
-        y_position -= 20  # Move down for the next bullet
-
-    # Add sentiment analysis
-    c.setFont("NotoSans", 14)
-    c.drawString(72, y_position, "Sentiment Analysis:")
-    c.setFont("NotoSans", 12)
-    c.drawString(72, y_position - 20, sentiment)  # Sentiment value
-
-    # Save the PDF to the buffer
-    c.save()
-    buffer.seek(0)  # Move to the beginning of the BytesIO buffer
-    return buffer
 
 # Set the title of the app
 st.title("News GPT Application")
@@ -324,10 +254,6 @@ with st.container():
                             # Display sentiment result with color formatting using HTML
                             st.markdown(f"<h3>AI-Generated Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
 
-                            # Add a button to download as PDF
-                            if st.button("Download as PDF"):
-                                pdf_output = create_pdf(title, translated_title, summary, sentiment, url, selected_language)
-                                st.download_button("Download PDF", pdf_output, f"{title}.pdf", "application/pdf")
                 else:
                     st.warning("Article format is not as expected.")
         else:
