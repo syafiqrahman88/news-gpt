@@ -3,7 +3,11 @@ import openai
 import requests
 import os
 import re  # Import regex module
-from fpdf import FPDF
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from io import BytesIO  # Import BytesIO for in-memory file handling
 
 # Check if running locally or on Streamlit Sharing
 if "STREAMLIT_SERVER" in os.environ:
@@ -19,23 +23,49 @@ else:
 
 # Language options for translation
 languages = {
-    'zh': 'Simplified Chinese',
-    'ja': 'Japanese',
-    'ko': 'Korean',
-    'vi': 'Vietnamese',
-    'th': 'Thai',
-    'id': 'Indonesian',
-    'ms': 'Malay',
-    'my': 'Burmese',
-    'km': 'Khmer',
-    'lo': 'Lao',
-    'hi': 'Hindi',
     'bn': 'Bengali',
+    'my': 'Burmese',
+    'zh': 'Chinese',
+    'hi': 'Hindi',
+    'id': 'Indonesian',
+    'ja': 'Japanese',
+    'km': 'Khmer',
+    'ko': 'Korean',
+    'lo': 'Lao',
+    'ms': 'Malay',
     'ta': 'Tamil',
-    'te': 'Telugu',
-    'ml': 'Malayalam',
-    'ur': 'Urdu'
+    'th': 'Thai',
+    'vi': 'Vietnamese'
 }
+
+# Function to register fonts based on language
+def register_font(language):
+    if language == 'zh':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansSC-VariableFont_wght.ttf'))  # Use Noto Sans SC
+    elif language == 'ja':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansJP-VariableFont_wght.ttf'))  # Use Noto Sans JP
+    elif language == 'ko':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansKR-VariableFont_wght.ttf'))  # Use Noto Sans KR
+    elif language == 'vi':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSans-VariableFont_wdth,wght.ttf'))  # Use Noto Sans for Vietnamese
+    elif language == 'th':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansThai-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Thai
+    elif language in ['id', 'ms']:
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSans-VariableFont_wdth,wght.ttf'))  # Use Noto Sans for Indonesian and Malay
+    elif language == 'my':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansMyanmar-Regular.ttf'))  # Use Noto Sans Myanmar
+    elif language == 'km':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansKhmer-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Khmer
+    elif language == 'lo':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansLao-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Lao
+    elif language == 'hi':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansDevanagari-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Devanagari
+    elif language == 'bn':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansBengali-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Bengali
+    elif language == 'ta':
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSansTamil-VariableFont_wdth,wght.ttf'))  # Use Noto Sans Tamil
+    else:
+        pdfmetrics.registerFont(TTFont('NotoSans', 'fonts/NotoSans-VariableFont_wdth,wght.ttf'))  # Fallback to Noto Sans
 
 def strip_markdown(text):
     """Remove Markdown formatting from the given text."""
@@ -97,38 +127,41 @@ def analyze_sentiment(title, body):
         st.error(f"Error during sentiment analysis: {e}")
         return None
 
-def create_pdf(original_title, translated_title, summary, sentiment, url, target_language):
+def create_pdf(original_title, translated_title, summary, sentiment, url, language):
     """Create a PDF file with the given content."""
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
+    buffer = BytesIO()  # Create a BytesIO buffer
+    c = canvas.Canvas(buffer, pagesize=letter)
 
-    # Set title (original title)
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, original_title, ln=True, align='C', link=url)  # Hyperlinked original title
+    # Register the appropriate font for the language
+    register_font(language)
+    c.setFont("NotoSans", 16)  # Use the registered font
+
+    # Set up the title (hyperlinked)
+    c.drawString(72, 720, original_title)  # Original Title
+    c.linkURL(url, (72, 720, 500, 740), relative=1)  # Hyperlink
 
     # Set translated title
-    pdf.set_font("Arial", 'B', 12)  # Smaller size for translated title
-    pdf.cell(0, 10, translated_title, ln=True, align='C')
-
-    # Add target language
-    pdf.set_font("Arial", size=12)  # Body text size
-    pdf.multi_cell(0, 10, f"Target Language: {target_language}")  # Add target language
+    c.setFont("NotoSans", 12)
+    c.drawString(72, 680, translated_title)  # Translated Title
 
     # Add AI-generated summary
-    pdf.multi_cell(0, 10, "AI-Generated Summary:")  # Use multi_cell for wrapping
+    c.setFont("NotoSans", 12)
+    c.drawString(72, 640, "AI-Generated Summary:")
+    y_position = 620
     for bullet in summary:
-        pdf.multi_cell(0, 10, f"- {bullet.strip()}")  # Use multi_cell for wrapping
+        c.drawString(72, y_position, f"- {bullet.strip()}")
+        y_position -= 20  # Move down for the next bullet
 
-    # Add sentiment analysis on the same line
-    pdf.set_font("Arial", 'B', 14)  # Header size for sentiment analysis
-    pdf.cell(0, 10, "Sentiment Analysis: ", ln=False)  # Label without line break
-    pdf.set_font("Arial", size=12)  # Reset to body text size for sentiment
-    pdf.cell(0, 10, sentiment, ln=True)  # Sentiment value on the same line
+    # Add sentiment analysis
+    c.setFont("NotoSans", 14)
+    c.drawString(72, y_position, "Sentiment Analysis:")
+    c.setFont("NotoSans", 12)
+    c.drawString(72, y_position - 20, sentiment)  # Sentiment value
 
-    # Save the PDF to a BytesIO object
-    pdf_output = pdf.output(dest='S').encode('latin1')
-    return pdf_output
+    # Save the PDF to the buffer
+    c.save()
+    buffer.seek(0)  # Move to the beginning of the BytesIO buffer
+    return buffer
 
 # Set the title of the app
 st.title("News GPT Application")
