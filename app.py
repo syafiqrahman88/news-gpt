@@ -4,9 +4,17 @@ import requests
 import os
 import re  # Import regex module
 
-# Access your API keys directly from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-news_api_key = st.secrets["NEWS_API_KEY"]
+# Check if running locally or on Streamlit Sharing
+if "STREAMLIT_SERVER" in os.environ:
+    # Access your API keys directly from Streamlit secrets
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    news_api_key = st.secrets["NEWS_API_KEY"]
+else:
+    # Load environment variables from .env file for local development
+    from dotenv import load_dotenv
+    load_dotenv()
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    news_api_key = os.getenv("NEWS_API_KEY")
 
 # Language options for translation
 languages = {
@@ -65,6 +73,28 @@ def translate_and_summarize(content, title, target_language):
         return response.choices[0].message["content"]
     except Exception as e:
         st.error(f"Error during translation and summarization: {e}")
+        return None
+
+def analyze_sentiment(title, body):
+    """Analyze the sentiment of the title and body using OpenAI's API."""
+    
+    prompt = (
+        f"Analyze the sentiment of the following news article and classify it as Positive, Negative, or Neutral:\n\n"
+        f"Title: {title}\n"
+        f"Body: {body}\n\n"
+        f"Output only the sentiment classification."
+    )
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message["content"].strip()
+    except Exception as e:
+        st.error(f"Error during sentiment analysis: {e}")
         return None
 
 # Set the title of the app
@@ -184,6 +214,8 @@ with st.container():
                         # Now you can safely split the string
                         lines = translated_response.split("\n")
                         summary = []
+                        title = article.get('title', 'No Title')  # Use original title
+                        body = article.get('body', 'No Description')  # Use original body
                         translated_title = ""
                         translated_body = ""
 
@@ -208,6 +240,19 @@ with st.container():
                         st.write(translated_title)
                         st.subheader("Translated Content:")
                         st.write(translated_body)
+
+                        # Perform sentiment analysis on the original title and body
+                        sentiment = analyze_sentiment(title, body)
+
+                        # Determine the color based on sentiment
+                        sentiment_color = {
+                            "Positive": "green",
+                            "Negative": "red",
+                            "Neutral": "gray"
+                        }.get(sentiment, "gray")  # Default to gray if sentiment is not recognized
+
+                        # Display sentiment result with color formatting using HTML
+                        st.markdown(f"<h3>Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
             else:
                 st.warning("Article format is not as expected.")
     else:
