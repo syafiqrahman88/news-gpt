@@ -3,6 +3,7 @@ import openai
 import requests
 import os
 import re  # Import regex module
+from fpdf import FPDF
 
 # Check if running locally or on Streamlit Sharing
 if "STREAMLIT_SERVER" in os.environ:
@@ -38,7 +39,6 @@ languages = {
 
 def strip_markdown(text):
     """Remove Markdown formatting from the given text."""
-    # Remove bold and italic formatting
     stripped_text = re.sub(r'\*\*(.*?)\*\*|__(.*?)__|\*(.*?)\*|_(.*?)_', r'\1\2\3\4', text)
     return stripped_text.strip()
 
@@ -96,6 +96,36 @@ def analyze_sentiment(title, body):
     except Exception as e:
         st.error(f"Error during sentiment analysis: {e}")
         return None
+
+def create_pdf(original_title, translated_title, summary, sentiment, url):
+    """Create a PDF file with the given content."""
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    # Set title (original title)
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, original_title, ln=True, align='C', link=url)  # Hyperlinked original title
+
+    # Set translated title
+    pdf.set_font("Arial", 'B', 12)  # Smaller size for translated title
+    pdf.cell(0, 10, translated_title, ln=True, align='C')
+
+    # Add AI-generated summary
+    pdf.set_font("Arial", size=12)  # Body text size
+    pdf.multi_cell(0, 10, "AI-Generated Summary:")  # Use multi_cell for wrapping
+    for bullet in summary:
+        pdf.multi_cell(0, 10, f"- {bullet.strip()}")  # Use multi_cell for wrapping
+
+    # Add sentiment analysis on the same line
+    pdf.set_font("Arial", 'B', 14)  # Header size for sentiment analysis
+    pdf.cell(0, 10, "Sentiment Analysis: ", ln=False)  # Label without line break
+    pdf.set_font("Arial", size=12)  # Reset to body text size for sentiment
+    pdf.cell(0, 10, sentiment, ln=True)  # Sentiment value on the same line
+
+    # Save the PDF to a BytesIO object
+    pdf_output = pdf.output(dest='S').encode('latin1')
+    return pdf_output
 
 # Set the title of the app
 st.title("News GPT Application")
@@ -257,6 +287,11 @@ with st.container():
 
                             # Display sentiment result with color formatting using HTML
                             st.markdown(f"<h3>AI-Generated Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
+
+                            # Add a button to download as PDF
+                            if st.button("Download as PDF"):
+                                pdf_output = create_pdf(title, translated_title, summary, sentiment, url)
+                                st.download_button("Download PDF", pdf_output, f"{title}.pdf", "application/pdf")
                 else:
                     st.warning("Article format is not as expected.")
         else:
