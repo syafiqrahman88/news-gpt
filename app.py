@@ -252,7 +252,7 @@ with st.container():
                         }.get(sentiment, "gray")  # Default to gray if sentiment is not recognized
 
                         # Display sentiment result with color formatting using HTML
-                        st.markdown(f"<h3>Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3>AI-Generated Sentiment: <span style='color: {sentiment_color};'>{sentiment}</span></h3>", unsafe_allow_html=True)
             else:
                 st.warning("Article format is not as expected.")
     else:
