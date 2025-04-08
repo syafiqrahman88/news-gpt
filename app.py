@@ -21,6 +21,8 @@ languages = {
     'bn': 'Bengali',
     'my': 'Burmese',
     'zh': 'Chinese',
+    'fr': 'French',
+    'de': 'German',
     'hi': 'Hindi',
     'id': 'Indonesian',
     'ja': 'Japanese',
@@ -28,6 +30,8 @@ languages = {
     'ko': 'Korean',
     'lo': 'Lao',
     'ms': 'Malay',
+    'pt': 'Portuguese',
+    'es': 'Spanish',
     'ta': 'Tamil',
     'th': 'Thai',
     'vi': 'Vietnamese'
